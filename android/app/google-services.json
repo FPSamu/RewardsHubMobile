@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "908785933672",
+    "project_id": "rewardshub-9ba8b",
+    "storage_bucket": "rewardshub-9ba8b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:908785933672:android:acbdaa27630c25d83d8add",
+        "android_client_info": {
+          "package_name": "com.example.rewardshub_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "908785933672-4psl9kbul80os1i2bh34qs2mldc4mapb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6txlZJsqsAjZ3RGM7j1rdOsk5K7O0IH0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "908785933672-4psl9kbul80os1i2bh34qs2mldc4mapb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
