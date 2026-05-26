@@ -8,15 +8,16 @@ import '../widgets/shared/business_avatar.dart';
 import '../widgets/shared/business_rewards_sheet.dart';
 
 class ClientHomePage extends StatefulWidget {
-  const ClientHomePage({super.key, this.onVerTodos});
+  const ClientHomePage({super.key, this.onVerTodos, this.onRefreshOthers});
 
   final VoidCallback? onVerTodos;
+  final VoidCallback? onRefreshOthers;
 
   @override
-  State<ClientHomePage> createState() => _ClientHomePageState();
+  State<ClientHomePage> createState() => ClientHomePageState();
 }
 
-class _ClientHomePageState extends State<ClientHomePage> {
+class ClientHomePageState extends State<ClientHomePage> {
   Map<String, dynamic>? _user;
   List<Map<String, dynamic>> _businessPoints = [];
   List<Map<String, dynamic>> _availableRewards = [];
@@ -31,6 +32,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
     super.initState();
     _load();
   }
+
+  Future<void> refresh() => _load();
 
   Future<void> _load() async {
     setState(() {
@@ -167,7 +170,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: _load,
+      onRefresh: () async {
+        await _load();
+        widget.onRefreshOthers?.call();
+      },
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [

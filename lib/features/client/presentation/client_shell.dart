@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -17,14 +18,49 @@ class ClientShell extends StatefulWidget {
   State<ClientShell> createState() => _ClientShellState();
 }
 
-class _ClientShellState extends State<ClientShell> {
+class _ClientShellState extends State<ClientShell>
+    with WidgetsBindingObserver {
   int _currentIndex = 1; // start on home
   Map<String, dynamic>? _user;
+
+  final _homeKey = GlobalKey<ClientHomePageState>();
+  final _pointsKey = GlobalKey<ClientPointsPageState>();
+  final _mapKey = GlobalKey<ClientMapPageState>();
+
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _refreshAll(),
+    );
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshAll();
+  }
+
+  void _refreshAll() {
+    _homeKey.currentState?.refresh();
+    _pointsKey.currentState?.refresh();
+    _mapKey.currentState?.refresh();
+  }
+
+  void _refreshOthers() {
+    _pointsKey.currentState?.refresh();
+    _mapKey.currentState?.refresh();
   }
 
   Future<void> _loadUser() async {
@@ -77,9 +113,13 @@ class _ClientShellState extends State<ClientShell> {
   // ── Pages ─────────────────────────────────────────────────────────────────
 
   late final _pages = [
-    const ClientPointsPage(),
-    ClientHomePage(onVerTodos: () => setState(() => _currentIndex = 0)),
-    const ClientMapPage(),
+    ClientPointsPage(key: _pointsKey),
+    ClientHomePage(
+      key: _homeKey,
+      onVerTodos: () => setState(() => _currentIndex = 0),
+      onRefreshOthers: _refreshOthers,
+    ),
+    ClientMapPage(key: _mapKey),
   ];
 
   // ── AppBar titles ─────────────────────────────────────────────────────────

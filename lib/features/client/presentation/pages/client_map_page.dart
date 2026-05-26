@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../data/client_service.dart';
 import '../widgets/shared/business_avatar.dart';
+import '../widgets/shared/business_rewards_sheet.dart';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -38,10 +39,10 @@ class ClientMapPage extends StatefulWidget {
   const ClientMapPage({super.key});
 
   @override
-  State<ClientMapPage> createState() => _ClientMapPageState();
+  State<ClientMapPage> createState() => ClientMapPageState();
 }
 
-class _ClientMapPageState extends State<ClientMapPage>
+class ClientMapPageState extends State<ClientMapPage>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
@@ -75,6 +76,8 @@ class _ClientMapPageState extends State<ClientMapPage>
   }
 
   // ── Init ────────────────────────────────────────────────────────────────────
+
+  Future<void> refresh() => _loadData();
 
   Future<void> _init() async {
     setState(() {
@@ -364,6 +367,17 @@ class _ClientMapPageState extends State<ClientMapPage>
                     userPointsMap: _userPointsMap,
                     rewardsMap: _rewardsMap,
                     onClose: () => setState(() => _selected = null),
+                    onShowRewards: () {
+                      final id = _selected!['id'] as String? ?? '';
+                      final pts = _userPointsMap[id];
+                      openBusinessRewardsSheet(context, {
+                        'businessId': id,
+                        'businessName': _selected!['name'],
+                        'businessLogoUrl': _selected!['logoUrl'],
+                        'points': pts?['points'] ?? 0,
+                        'stamps': pts?['stamps'] ?? 0,
+                      });
+                    },
                   ),
                 ),
             ],
@@ -372,9 +386,12 @@ class _ClientMapPageState extends State<ClientMapPage>
 
         // ── Scrollable content below map ─────────────────────────────────────
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-            child: Column(
+          child: RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: _loadData,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Stats strip
@@ -483,6 +500,7 @@ class _ClientMapPageState extends State<ClientMapPage>
                 ),
               ],
             ),
+          ),
           ),
         ),
       ],
@@ -788,11 +806,13 @@ class _BusinessBottomCard extends StatelessWidget {
     required this.userPointsMap,
     required this.rewardsMap,
     required this.onClose,
+    required this.onShowRewards,
   });
   final Map<String, dynamic> biz;
   final Map<String, Map<String, int>> userPointsMap;
   final Map<String, List<dynamic>> rewardsMap;
   final VoidCallback onClose;
+  final VoidCallback onShowRewards;
 
   Future<void> _openMaps() async {
     final ll = _extractLatLng(biz);
@@ -988,26 +1008,54 @@ class _BusinessBottomCard extends StatelessWidget {
             ],
             const SizedBox(height: 12),
 
-            // CTA
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: ElevatedButton.icon(
-                onPressed: _openMaps,
-                icon: const Icon(Icons.directions_rounded, size: 18),
-                label: const Text(
-                  'Cómo llegar',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            // CTA buttons
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: _openMaps,
+                      icon: const Icon(Icons.directions_rounded, size: 18),
+                      label: const Text(
+                        'Cómo llegar',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: OutlinedButton.icon(
+                      onPressed: onShowRewards,
+                      icon: const Icon(Icons.card_giftcard_rounded, size: 18),
+                      label: const Text(
+                        'Recompensas',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF065F46),
+                        backgroundColor: const Color(0xFFD1FAE5),
+                        side: const BorderSide(color: Color(0xFF6EE7B7)),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

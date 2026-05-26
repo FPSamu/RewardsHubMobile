@@ -9,10 +9,10 @@ class ClientPointsPage extends StatefulWidget {
   const ClientPointsPage({super.key});
 
   @override
-  State<ClientPointsPage> createState() => _ClientPointsPageState();
+  State<ClientPointsPage> createState() => ClientPointsPageState();
 }
 
-class _ClientPointsPageState extends State<ClientPointsPage>
+class ClientPointsPageState extends State<ClientPointsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _searchCtrl = TextEditingController();
@@ -31,6 +31,8 @@ class _ClientPointsPageState extends State<ClientPointsPage>
     _tabController = TabController(length: 2, vsync: this);
     _load();
   }
+
+  Future<void> refresh() => _load();
 
   @override
   void dispose() {
@@ -154,6 +156,7 @@ class _ClientPointsPageState extends State<ClientPointsPage>
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _load,
+      notificationPredicate: (n) => n.depth == 2,
       child: NestedScrollView(
         headerSliverBuilder: (_, __) => [
           SliverToBoxAdapter(
@@ -565,6 +568,7 @@ class _BusinessesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       children: [
         // Filter pills
@@ -810,6 +814,7 @@ class _HistorialTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       children: [
         Container(
