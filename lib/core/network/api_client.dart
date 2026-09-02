@@ -45,6 +45,9 @@ class ApiClient {
     '/auth/check-email',
     '/auth/cashier-login',
     '/auth/refresh',
+    // Public on purpose: the version gate has to work before login and even
+    // when credential storage is unavailable.
+    '/app-version',
   ];
   static const _noRefreshPaths = [
     '/auth/refresh',

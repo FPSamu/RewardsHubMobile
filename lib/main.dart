@@ -6,6 +6,8 @@ import 'core/constants/app_colors.dart';
 import 'core/network/api_client.dart';
 import 'core/notification_service.dart';
 import 'core/storage/secure_storage.dart';
+import 'core/update/update_gate.dart';
+import 'core/update/update_service.dart';
 import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_page.dart';
 import 'features/client/presentation/client_shell.dart';
@@ -63,6 +65,9 @@ class _AppRouterState extends State<_AppRouter> with WidgetsBindingObserver {
   /// the login screen repeatedly and so [_resolve] knows not to route past it.
   bool _sessionEnded = false;
 
+  /// Set when the backend refuses this build. Nothing routes past it.
+  UpdateStatus? _blockingUpdate;
+
   @override
   void initState() {
     super.initState();
@@ -83,11 +88,36 @@ class _AppRouterState extends State<_AppRouter> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
+    _checkForUpdate();
     if (_home is! ClientShell) return;
     ApiClient.ensureValidSession();
   }
 
+  /// Returns true when the build is blocked and the caller must stop routing.
+  Future<bool> _checkForUpdate() async {
+    final status = await UpdateService.check();
+    if (!mounted) return false;
+
+    if (status.isRequired) {
+      setState(() => _blockingUpdate = status);
+      return true;
+    }
+
+    if (status.isOptional && !UpdateService.optionalPromptDismissed) {
+      UpdateService.optionalPromptDismissed = true;
+      // Deferred so it lands after the frame that shows the destination page.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showOptionalUpdateSheet(context, status);
+      });
+    }
+    return false;
+  }
+
   Future<void> _resolve() async {
+    // Runs before anything else: an unsupported build must not reach the login
+    // screen either. Fails open, so an unreachable backend never blocks anyone.
+    if (await _checkForUpdate()) return;
+
     final authenticated = await SecureStorage.isAuthenticated();
     if (!authenticated) {
       _go(_authPage());
@@ -148,6 +178,9 @@ class _AppRouterState extends State<_AppRouter> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final blocking = _blockingUpdate;
+    if (blocking != null) return UpdateRequiredScreen(status: blocking);
+
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: _home ??
