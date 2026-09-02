@@ -271,6 +271,20 @@ class AuthService {
 
   // ── Getters ───────────────────────────────────────────────────────────────
 
+  /// Drops the Firebase/Google session without touching the network.
+  ///
+  /// Used when the backend already rejected our refresh token: posting to
+  /// /auth/logout would be pointless, and its 15s timeout could still be in
+  /// flight — clearing storage — while the user is signing in again.
+  static Future<void> signOutLocal() async {
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+    } catch (_) {
+      // A stale provider session must never block the login screen.
+    }
+  }
+
   static Future<bool> isAuthenticated() => SecureStorage.isAuthenticated();
   static Future<String?> getRole() => SecureStorage.getRole();
 }

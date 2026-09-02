@@ -1,30 +1,24 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:rewardshub_mobile/main.dart';
+import 'package:rewardshub_mobile/features/auth/presentation/auth_page.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('the expired-session notice is shown on the login screen',
+      (tester) async {
+    const message = 'Tu sesión expiró. Vuelve a iniciar sesión para continuar.';
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpWidget(const MaterialApp(
+      home: AuthPage(notice: message),
+    ));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text(message), findsOneWidget);
+  });
+
+  testWidgets('no notice is shown on a plain login', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: AuthPage()));
+    await tester.pump();
+
+    expect(find.byIcon(Icons.lock_clock_rounded), findsNothing);
   });
 }

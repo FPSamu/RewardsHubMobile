@@ -6,6 +6,7 @@ import 'core/constants/app_colors.dart';
 import 'core/network/api_client.dart';
 import 'core/notification_service.dart';
 import 'core/storage/secure_storage.dart';
+import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_page.dart';
 import 'features/client/presentation/client_shell.dart';
 import 'firebase_options.dart';
@@ -55,13 +56,35 @@ class _AppRouter extends StatefulWidget {
   State<_AppRouter> createState() => _AppRouterState();
 }
 
-class _AppRouterState extends State<_AppRouter> {
+class _AppRouterState extends State<_AppRouter> with WidgetsBindingObserver {
   Widget? _home;
+
+  /// Set once the session died, so a burst of parallel 401s does not rebuild
+  /// the login screen repeatedly and so [_resolve] knows not to route past it.
+  bool _sessionEnded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ApiClient.onSessionExpired = _onSessionExpired;
     _resolve();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    ApiClient.onSessionExpired = null;
+    super.dispose();
+  }
+
+  /// Renewing on resume means the token is refreshed before a screen tries to
+  /// use it, instead of every screen firing a 401 at once.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (_home is! ClientShell) return;
+    ApiClient.ensureValidSession();
   }
 
   Future<void> _resolve() async {
@@ -72,12 +95,26 @@ class _AppRouterState extends State<_AppRouter> {
     }
 
     final role = await SecureStorage.getRole();
-    _goRole(role ?? '');
+    if (role != 'client') {
+      await SecureStorage.clear();
+      _go(_authPage());
+      return;
+    }
+
+    // Renew up front. A network failure is not fatal here — the interceptor
+    // still refreshes on demand — but an outright rejection routes to login
+    // through _onSessionExpired before any screen loads.
+    await ApiClient.ensureValidSession();
+    if (_sessionEnded) return;
+
+    NotificationService.syncToken();
+    _go(ClientShell(onLogout: _onLogout));
   }
 
   void _goRole(String role) {
     switch (role) {
       case 'client':
+        _sessionEnded = false;
         NotificationService.syncToken();
         _go(ClientShell(onLogout: _onLogout));
       default:
@@ -90,9 +127,24 @@ class _AppRouterState extends State<_AppRouter> {
     if (mounted) setState(() => _home = page);
   }
 
-  void _onLogout() => _go(_authPage());
+  void _onSessionExpired() {
+    if (_sessionEnded) return;
+    _sessionEnded = true;
+    _go(_authPage(
+      notice: 'Tu sesión expiró. Vuelve a iniciar sesión para continuar.',
+    ));
+    // Tokens are already cleared; drop the Firebase session too. Kept off the
+    // await path so the login screen appears immediately.
+    AuthService.signOutLocal();
+  }
 
-  AuthPage _authPage() => AuthPage(onAuthSuccess: _goRole);
+  void _onLogout() {
+    _sessionEnded = false;
+    _go(_authPage());
+  }
+
+  AuthPage _authPage({String? notice}) =>
+      AuthPage(onAuthSuccess: _goRole, notice: notice);
 
   @override
   Widget build(BuildContext context) {

@@ -7,10 +7,19 @@ import 'widgets/login_form_section.dart';
 import 'widgets/signup_form_section.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key, this.initialMode = 'login', this.onAuthSuccess});
+  const AuthPage({
+    super.key,
+    this.initialMode = 'login',
+    this.onAuthSuccess,
+    this.notice,
+  });
 
   final String initialMode; // 'login' | 'signup'
   final void Function(String role)? onAuthSuccess;
+
+  /// Explains why the user landed back here, e.g. an expired session. Cleared
+  /// as soon as they submit, so it never lingers over a real login error.
+  final String? notice;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -18,6 +27,7 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   late String _mode; // 'login' | 'signup'
+  String? _notice;
   String _accountType = 'client'; // 'client' | 'business'
 
   // Login controllers
@@ -38,6 +48,7 @@ class _AuthPageState extends State<AuthPage> {
   @override
   void initState() {
     super.initState();
+    _notice = widget.notice;
     _mode = widget.initialMode;
   }
 
@@ -219,6 +230,12 @@ class _AuthPageState extends State<AuthPage> {
                     ),
                   ),
 
+                  if (_notice != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                      child: _SessionNotice(message: _notice!),
+                    ),
+
                   // Form content
                   Expanded(
                     child: SingleChildScrollView(
@@ -362,6 +379,45 @@ class _Tab extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Neutral, non-alarming banner for "you were signed out" style messages.
+/// The red [AppAlertMessage] is reserved for failed login attempts.
+class _SessionNotice extends StatelessWidget {
+  const _SessionNotice({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryMuted,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBorder),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.lock_clock_rounded,
+              size: 16, color: AppColors.primaryDark),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.primaryDark,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
